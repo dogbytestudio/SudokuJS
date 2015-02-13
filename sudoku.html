@@ -141,17 +141,31 @@ function getIndexByRowCol(row,col)
 {
 	return row*9 + col;
 }
-function findNextFree(grid)
-{
-	//use the best free cell by using density check
-	return findBestFreeCell(grid);
 
-	/*
-	var found = null;
-	for(var i=0;i<grid.length;++i)
-		if(grid[i]=="") return i;
-	return false;
-	*/
+function getRowDensityAt(grid,row)
+{
+	var sum = 0;
+	for(var y=0;y<9;++y)
+		if( getGridValueAt(grid,row,y) != "" )
+			++sum;
+	return sum;
+}
+function getColumnDensityAt(grid,col)
+{
+	var sum = 0;
+	for(var x=0;x<9;++x)
+		if( getGridValueAt(grid,x,col) != "" )
+			++sum;
+	return sum;
+}
+function getSquareDensityAt(grid,row,col)
+{
+	var indexes = getBoxIndexesAt(row,col);
+	var sum = 0;
+	for(var i=0, len=indexes.length; i<len; ++i)
+		if( getGridValueByIndexAt(grid,i)!="" )
+			++sum;
+	return sum;
 }
 function getDensityAt(grid,index)
 {
@@ -175,23 +189,45 @@ function findBestFreeCell(grid)
 {
 	var last_density = -1;
 	var last_index = -1;
-	for(var i=0;i<grid.length;++i)
+	var row_density = [];
+	var col_density = [];
+	var square_density = [];
+	for(var i=0;i<9;++i)
 	{
-		if(grid[i]=="") {
-			var density = getDensityAt(grid,i);
-			if(density>last_density)
+		row_density[i] = getRowDensityAt(grid,i);
+		col_density[i] = getColumnDensityAt(grid,i);
+	}
+
+	for(var x=0;x<9;++x)
+	{
+		for(var y=0;y<9;++y)
+		{
+			var index = getIndexByRowCol(x,y);
+			var value = getGridValueByIndexAt(grid,index);
+			if(value!="") continue;
+			
+			if(row_density[x]>8) return index;
+			else if(col_density[y]>8) return index;
+			
+			var square_density = getSquareDensityAt(grid,x,y);
+			if(square_density>8) return index;
+			
+			var density = row_density[x] + col_density[y] + square_density;
+			if(density > last_density)
 			{
 				last_density = density;
-				last_index = i;
+				last_index = index;
 			}
+			
 		}
 	}
+
 	if(last_index > -1) return last_index;
 	return false;
 }
 function solveGrid(grid)
 {
-	var next = findNextFree(grid);
+	var next = findBestFreeCell(grid);
 	if(next !== false )
 	{
 		var row = getRowByIndex(next);
@@ -199,6 +235,7 @@ function solveGrid(grid)
 		var values = getPossibleValueAt(grid,row,col);
 		if(values.length == 0)
 			return null;
+
 		var clone= grid.concat([]);
 		var return_grid = null;
 
